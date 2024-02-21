@@ -10,26 +10,30 @@ function App() {
   const [data, setData] = useState(null);
   const [stats, setStats] = useState(null);
   const [barChart, setBarChart] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [perPage, setPerPage] = useState(10); // Initial value set to 10
 
   const fetchData = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:3000/data?month=${month}&search=${search}`
+        `http://localhost:3000/data?month=${month}&search=${search}&perPage=${perPage}&page=${currentPage}`
       );
       console.log(response);
       setData(response.data.transactions);
       setStats(response.data.statistics);
       setBarChart(response.data.barChartData.barChartData);
+      setTotalPages(response.data.transactions.totalPages);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
-  
+
   useEffect(() => {
     if (month !== null) {
       fetchData();
     }
-  }, [month, search]);
+  }, [month, search, currentPage, perPage]); // Include perPage in the dependency array
 
   const onChangeMonth = (selectedMonth) => {
     setMonth(selectedMonth);
@@ -39,9 +43,27 @@ function App() {
     setSearch(event.target.value);
   };
 
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handlePerPageChange = (event) => {
+    setPerPage(event.target.value);
+  };
+
   return (
     <div className="container *:first-letter:mt-8 ">
-      <h1 className="w-2/3  mx-auto text-center mt-2 text-3xl rounded-lg font-bold font-sans bg-blue-300 text-white p-4 my-4">Transaction Dashboard</h1>
+      <h1 className="w-2/3  mx-auto text-center mt-2 text-3xl rounded-lg font-bold font-sans bg-blue-300 text-white p-4 my-4">
+        Transaction Dashboard
+      </h1>
       <div className="flex justify-between items-center mb-6 w-2/3  mx-auto py-4">
         <div className="relative w-1/3">
           <input
@@ -65,6 +87,18 @@ function App() {
           </svg>
         </div>
         <MonthSelect onChange={onChangeMonth} />
+        <div className="relative w-1/6 flex items-center">
+          PerPage
+          <select
+            className="input input-primary w-full ml-2"
+            value={perPage}
+            onChange={handlePerPageChange}
+          >
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+          </select>
+        </div>
       </div>
 
       {data && (
@@ -101,7 +135,26 @@ function App() {
           </tbody>
         </table>
       )}
-
+      <div className="flex justify-center my-4">
+        <button
+          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-l ${
+            currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={handlePrevPage}
+          disabled={currentPage === 1}
+        >
+          Prev
+        </button>
+        <button
+          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r ${
+            currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
+      </div>
       <div className="flex justify-between bg-gray-100 p-6 rounded-lg w-2/3  mx-auto ">
         {stats && (
           <div className="w-1/3 bg-white p-4 rounded-lg shadow-md">
@@ -112,16 +165,24 @@ function App() {
           </div>
         )}
         <div className="w-2/3 ml-4">
-          {stats && <h2 className="text-xl">Bar Chart Stats - {stats.month} <span className="text-sm"> (Selected month name from dropdown )</span></h2>}
+          {stats && (
+            <h2 className="text-xl">
+              Bar Chart Stats - {stats.month}{" "}
+              <span className="text-sm">
+                {" "}
+                (Selected month name from dropdown )
+              </span>
+            </h2>
+          )}
           {barChart && <BarChart data={barChart} />}
         </div>
       </div>
       <div className=" bg-gray-100 p-6 rounded-lg w-2/3  mx-auto">
-
-      {month && <PieGraph month={month}/>}
+        {month && <PieGraph month={month} />}
       </div>
     </div>
   );
 }
 
 export default App;
+
